@@ -47,6 +47,8 @@ runcmd(struct cmd *cmd)
   struct execcmd *ecmd;
   struct pipecmd *pcmd;
   struct redircmd *rcmd;
+  char *path=(char *)malloc(150* sizeof(char));
+  char *root="/bin/";
 
   if(cmd == 0)
     exit(0);
@@ -60,22 +62,53 @@ runcmd(struct cmd *cmd)
     ecmd = (struct execcmd*)cmd;
     if(ecmd->argv[0] == 0)
       exit(0);
-    fprintf(stderr, "exec not implemented\n");
-    // Your code here ...
+    if(access(ecmd->argv[0], F_OK) == 0) {
+        execv(ecmd->argv[0], ecmd->argv);
+    }
+    else {
+        strcpy(path, root);
+        strcat(path, ecmd->argv[0]);
+        if(access(path, F_OK) == 0)
+            execv(path, ecmd->argv);
+        else {
+            fprintf(stderr, "%s: Command not found.\n", ecmd->argv[0]);
+        }
+    }
     break;
 
   case '>':
   case '<':
     rcmd = (struct redircmd*)cmd;
-    fprintf(stderr, "redir not implemented\n");
-    // Your code here ...
+    close(rcmd->fd);
+    if(open(rcmd->file, rcmd->mode, 0777)<0) {
+        fprintf(stderr, "Try to open :%s failed\n", rcmd->file);
+        exit(0);
+    }
     runcmd(rcmd->cmd);
     break;
 
   case '|':
     pcmd = (struct pipecmd*)cmd;
-    fprintf(stderr, "pipe not implemented\n");
-    // Your code here ...
+    if(pipe(p) < 0)
+        fprintf(stderr, "Pipe is not created successfully\n");
+    if(fork1() == 0) {
+        close(1);
+        dup(p[1]);
+        close(p[0]);
+        close(p[1]);
+        runcmd(pcmd->left);
+    }
+    if(fork1() == 0) {
+        close(0);
+        dup(p[0]);
+        close(p[0]);
+        close(p[1]);
+        runcmd(pcmd->right);
+    }
+    close(p[0]);
+    close(p[1]);
+    wait();
+    wait();
     break;
   }    
   exit(0);

@@ -47,6 +47,7 @@ runcmd(struct cmd *cmd)
   struct execcmd *ecmd;
   struct pipecmd *pcmd;
   struct redircmd *rcmd;
+  // todo memory exceed here
   char *path=(char *)malloc(150* sizeof(char));
   char *root="/bin/";
 
